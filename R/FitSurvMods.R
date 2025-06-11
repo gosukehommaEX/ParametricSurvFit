@@ -16,7 +16,7 @@
 #' @param stratify_name Character string specifying the original stratification
 #'   variable name for column header. If NULL (default), uses "STRATIFY"
 #'
-#' @return If format_output = TRUE: A formatted kable object ready for display
+#' @return If format_output = TRUE: A formatted kable object ready for display.
 #'   If format_output = FALSE: A data frame with the following columns:
 #'   \item{Distribution}{Distribution name}
 #'   \item{ARM}{Treatment arm}
@@ -49,6 +49,7 @@
 #' @importFrom flexsurv flexsurvreg
 #' @importFrom survival Surv
 #' @importFrom kableExtra kable kable_styling collapse_rows column_spec
+#' @importFrom magrittr %>%
 #' @export
 #'
 #' @examples
@@ -118,6 +119,10 @@ FitSurvMods <- function(dataset,
     stop("Invalid distributions specified: ", paste(invalid_distributions, collapse = ", "),
          "\nValid options are: ", paste(valid_distributions, collapse = ", "))
   }
+
+  # Define variables for NSE to avoid R CMD check notes
+  ARM <- STRATIFY <- fit_model <- param_data <- Parameters <- NULL
+  Estimates <- SEs <- LCLs <- UCLs <- Distribution <- Parameter <- NULL
 
   # Initialize empty list to store results
   all_results <- list()

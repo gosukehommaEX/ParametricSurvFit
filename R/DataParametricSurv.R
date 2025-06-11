@@ -34,6 +34,8 @@
 #'
 #' @importFrom haven read_sas
 #' @importFrom dplyr select left_join filter mutate rename
+#' @importFrom rlang sym :=
+#' @importFrom magrittr %>%
 #' @export
 #'
 #' @examples
@@ -90,6 +92,10 @@ DataParametricSurv <- function(adslph_path,
     stop("Variable '", variable, "' not found in PARAMCD column of ADTTE dataset")
   }
 
+  # Define variables for NSE to avoid R CMD check notes
+  SUBJID <- ARM <- PARAMCD <- CNSR <- EVENT <- STRATIFY <- NULL
+  SURVTIME <- NULL
+
   # Select columns based on whether stratification is used
   if (is.null(stratify_by)) {
     # No stratification - select only SUBJID and ARM
@@ -98,19 +104,19 @@ DataParametricSurv <- function(adslph_path,
   } else {
     # With stratification - select SUBJID, ARM, and stratification variable
     adslph_selected <- adam_adslph %>%
-      dplyr::select(SUBJID, ARM, !!sym(stratify_by))
+      dplyr::select(SUBJID, ARM, !!rlang::sym(stratify_by))
   }
 
   # Create dataset including necessary information
   dataset <- adslph_selected %>%
     dplyr::left_join(
       s_adam_adtte %>%
-        dplyr::select(SUBJID, PARAMCD, SURVTIME, CNSR, !!sym(population)),
+        dplyr::select(SUBJID, PARAMCD, SURVTIME, CNSR, !!rlang::sym(population)),
       by = 'SUBJID'
     ) %>%
     dplyr::filter(
       PARAMCD == variable &
-        !!sym(population) == 'Y'
+        !!rlang::sym(population) == 'Y'
     ) %>%
     dplyr::mutate(
       ARM = as.factor(ARM),
@@ -126,8 +132,8 @@ DataParametricSurv <- function(adslph_path,
   } else {
     # Use specified stratification variable
     dataset <- dataset %>%
-      dplyr::mutate(!!sym(stratify_by) := as.factor(!!sym(stratify_by))) %>%
-      dplyr::rename(STRATIFY = !!sym(stratify_by)) %>%
+      dplyr::mutate(!!rlang::sym(stratify_by) := as.factor(!!rlang::sym(stratify_by))) %>%
+      dplyr::rename(STRATIFY = !!rlang::sym(stratify_by)) %>%
       dplyr::select(SUBJID, ARM, STRATIFY, SURVTIME, CNSR, EVENT)
   }
 
