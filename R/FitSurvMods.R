@@ -115,6 +115,7 @@ FitSurvMods <- function(dataset,
   # Define variables for NSE to avoid R CMD check notes
   ARM <- STRATIFY <- fit_model <- param_data <- Parameters <- NULL
   Estimates <- SEs <- LCLs <- UCLs <- Distribution <- Parameter <- NULL
+  `95% Confidence Limits` <- NULL
 
   # Initialize empty list to store results
   all_results <- list()
