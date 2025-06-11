@@ -16,17 +16,7 @@
 #' @param stratify_name Character string specifying the original stratification
 #'   variable name for column header. If NULL (default), uses "STRATIFY"
 #'
-#' @return If format_output = TRUE: A formatted kable object ready for display.
-#'   If format_output = FALSE: A data frame with the following columns:
-#' \describe{
-#'   \item{Distribution}{Distribution name}
-#'   \item{ARM}{Treatment arm}
-#'   \item{STRATIFY}{Stratification factor level}
-#'   \item{Parameter}{Parameter name}
-#'   \item{Coefficient Estimate}{Parameter estimate}
-#'   \item{SE}{Standard error}
-#'   \item{95% Confidence Limits}{Formatted confidence interval}
-#' }
+#' @return A formatted kable object or data frame with parameter estimates and confidence intervals
 #'
 #' @details
 #' The function performs the following operations:

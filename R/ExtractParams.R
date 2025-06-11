@@ -1,4 +1,3 @@
-
 #' Extract Parameters from Fitted Parametric Survival Models
 #'
 #' This function extracts parameter estimates, standard errors, and 95% confidence
@@ -8,14 +7,7 @@
 #' @param distribution Character string specifying the distribution type.
 #'   Must be one of: "exp", "weibull", "lnorm", "llogis", "gompertz", "gengamma", "gamma"
 #'
-#' @return A list containing the following elements:
-#' \describe{
-#'   \item{Parameters}{Character vector of parameter names}
-#'   \item{Estimates}{Numeric vector of parameter estimates}
-#'   \item{SEs}{Numeric vector of standard errors}
-#'   \item{LCLs}{Numeric vector of lower 95% confidence limits}
-#'   \item{UCLs}{Numeric vector of upper 95% confidence limits}
-#' }
+#' @return A list containing parameter estimates and confidence intervals with components Parameters, Estimates, SEs, LCLs, and UCLs
 #'
 #' @details
 #' The function handles different parameterizations for each distribution:
