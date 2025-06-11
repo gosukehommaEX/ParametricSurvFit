@@ -1,8 +1,8 @@
 # ParametricSurvFit
 
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/gosukehommaEX/ParametricSurvFit/workflows/R-CMD-check/badge.svg)](https://github.com/yourusername/ParametricSurvFit/actions)
-[![Codecov test coverage](https://codecov.io/gh/gosukehommaEX/ParametricSurvFit/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/ParametricSurvFit?branch=main)
+[![R-CMD-check](https://github.com/gosukehommaEX/ParametricSurvFit/workflows/R-CMD-check/badge.svg)](https://github.com/gosukehommaEX/ParametricSurvFit/actions)
+[![Codecov test coverage](https://codecov.io/gh/gosukehommaEX/ParametricSurvFit/branch/main/graph/badge.svg)](https://codecov.io/gh/gosukehommaEX/ParametricSurvFit?branch=main)
 [![CRAN status](https://www.r-pkg.org/badges/version/ParametricSurvFit)](https://CRAN.R-project.org/package=ParametricSurvFit)
 <!-- badges: end -->
 
@@ -30,7 +30,7 @@ if (!requireNamespace("devtools", quietly = TRUE)) {
 }
 
 # Install ParametricSurvFit
-devtools::install_github("yourusername/ParametricSurvFit")
+devtools::install_github("gosukehommaEX/ParametricSurvFit")
 ```
 
 ## Dependencies
@@ -185,14 +185,14 @@ If you use this package in your research, please cite:
 
 ```
 Homma, G. (2025). ParametricSurvFit: Parametric Survival Model Fitting and Analysis. 
-R package version 0.1.0. https://github.com/yourusername/ParametricSurvFit
+R package version 0.1.0. https://github.com/gosukehommaEX/ParametricSurvFit
 ```
 
 ## Contact
 
 Gosuke Homma - my.name.is.gosuke@gmail.com
 
-Project Link: [https://github.com/yourusername/ParametricSurvFit](https://github.com/yourusername/ParametricSurvFit)
+Project Link: [https://github.com/gosukehommaEX/ParametricSurvFit](https://github.com/gosukehommaEX/ParametricSurvFit)
 
 ## Acknowledgments
 
