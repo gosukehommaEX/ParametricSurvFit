@@ -1,8 +1,8 @@
 # ParametricSurvFit
 
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/yourusername/ParametricSurvFit/workflows/R-CMD-check/badge.svg)](https://github.com/yourusername/ParametricSurvFit/actions)
-[![Codecov test coverage](https://codecov.io/gh/yourusername/ParametricSurvFit/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/ParametricSurvFit?branch=main)
+[![R-CMD-check](https://github.com/gosukehommaEX/ParametricSurvFit/workflows/R-CMD-check/badge.svg)](https://github.com/yourusername/ParametricSurvFit/actions)
+[![Codecov test coverage](https://codecov.io/gh/gosukehommaEX/ParametricSurvFit/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/ParametricSurvFit?branch=main)
 [![CRAN status](https://www.r-pkg.org/badges/version/ParametricSurvFit)](https://CRAN.R-project.org/package=ParametricSurvFit)
 <!-- badges: end -->
 
