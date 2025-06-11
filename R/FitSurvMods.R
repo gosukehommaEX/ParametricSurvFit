@@ -18,6 +18,7 @@
 #'
 #' @return If format_output = TRUE: A formatted kable object ready for display.
 #'   If format_output = FALSE: A data frame with the following columns:
+#' \describe{
 #'   \item{Distribution}{Distribution name}
 #'   \item{ARM}{Treatment arm}
 #'   \item{STRATIFY}{Stratification factor level}
@@ -25,6 +26,7 @@
 #'   \item{Coefficient Estimate}{Parameter estimate}
 #'   \item{SE}{Standard error}
 #'   \item{95% Confidence Limits}{Formatted confidence interval}
+#' }
 #'
 #' @details
 #' The function performs the following operations:
