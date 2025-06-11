@@ -30,7 +30,7 @@ If TRUE (default), returns formatted table. If FALSE, returns raw data frame}
 variable name for column header. If NULL (default), uses "STRATIFY"}
 }
 \value{
-
+A formatted kable object or data frame with parameter estimates and confidence intervals
 }
 \description{
 This function fits multiple parametric survival distributions to survival data

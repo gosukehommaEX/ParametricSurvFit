@@ -13,7 +13,7 @@ ExtractParams(fit_model, distribution)
 Must be one of: "exp", "weibull", "lnorm", "llogis", "gompertz", "gengamma", "gamma"}
 }
 \value{
-
+A list containing parameter estimates and confidence intervals with components Parameters, Estimates, SEs, LCLs, and UCLs
 }
 \description{
 This function extracts parameter estimates, standard errors, and 95% confidence
