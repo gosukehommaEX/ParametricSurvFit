@@ -13,7 +13,7 @@
 ## Features
 
 - **Multiple Distribution Support**: Fit exponential, Weibull, log-normal, log-logistic, Gompertz, generalized gamma, and gamma distributions
-- **ADaM Dataset Integration**: Direct support for ADSLPH and ADTTE datasets
+- **ADaM Dataset Integration**: Direct support for ADSL and ADTTE datasets
 - **Stratified Analysis**: Flexible stratification by any categorical variable
 - **Formatted Output**: Professional tables with kableExtra formatting
 - **Parameter Extraction**: Comprehensive extraction of distribution parameters with confidence intervals
@@ -52,7 +52,7 @@ library(ParametricSurvFit)
 
 # 1. Create survival dataset from ADaM files
 surv_data <- DataParametricSurv(
-  adslph_path = "path/to/adslph.sas7bdat",
+  adsl_path = "path/to/adsl.sas7bdat",
   adtte_path = "path/to/adtte.sas7bdat",
   population = "ITTFL",
   variable = "OS",
@@ -76,7 +76,7 @@ print(results)
 Creates a standardized dataset for parametric survival analysis from ADaM datasets.
 
 **Key Parameters:**
-- `adslph_path`: Path to ADSLPH dataset
+- `adsl_path`: Path to ADSL dataset
 - `adtte_path`: Path to ADTTE dataset  
 - `population`: Analysis population ("ITTFL", "SAFFL", or "RANDFL")
 - `variable`: Survival endpoint ("OS", "PFS", etc.)
@@ -116,7 +116,7 @@ Extracts parameters, standard errors, and confidence intervals from fitted model
 ```r
 # Simple overall survival analysis without stratification
 surv_data <- DataParametricSurv(
-  adslph_path = "adslph.sas7bdat",
+  adsl_path = "adsl.sas7bdat",
   adtte_path = "adtte.sas7bdat",
   population = "ITTFL",
   variable = "OS",
@@ -130,7 +130,7 @@ results <- FitSurvMods(surv_data, distributions = c("exp", "weibull"))
 ```r
 # Analysis stratified by region
 surv_data_region <- DataParametricSurv(
-  adslph_path = "adslph.sas7bdat",
+  adsl_path = "adsl.sas7bdat",
   adtte_path = "adtte.sas7bdat",
   population = "ITTFL",
   variable = "PFS",

@@ -48,7 +48,7 @@ The first step is to create a standardized dataset from your ADaM files:
 ```{r data_prep}
 # Basic usage - Overall Survival analysis with sex stratification
 surv_data <- DataParametricSurv(
-  adslph_path = "path/to/adslph.sas7bdat",
+  adsl_path = "path/to/adsl.sas7bdat",
   adtte_path = "path/to/adtte.sas7bdat",
   population = "ITTFL",      # ITT population
   variable = "OS",           # Overall Survival
@@ -104,7 +104,7 @@ print(results_raw)
 ```{r pfs_example}
 # Analyze PFS stratified by region
 pfs_data <- DataParametricSurv(
-  adslph_path = "path/to/adslph.sas7bdat",
+  adsl_path = "path/to/adsl.sas7bdat",
   adtte_path = "path/to/adtte.sas7bdat",
   population = "ITTFL",
   variable = "PFS",          # Progression-Free Survival
@@ -127,7 +127,7 @@ pfs_results
 ```{r safety_example}
 # Analyze safety population without stratification
 safety_data <- DataParametricSurv(
-  adslph_path = "path/to/adslph.sas7bdat",
+  adsl_path = "path/to/adsl.sas7bdat",
   adtte_path = "path/to/adtte.sas7bdat",
   population = "SAFFL",      # Safety population
   variable = "OS",
@@ -270,7 +270,7 @@ The package includes comprehensive error checking:
 try({
   # This will fail if stratification variable doesn't exist
   bad_data <- DataParametricSurv(
-    adslph_path = "path/to/adslph.sas7bdat",
+    adsl_path = "path/to/adsl.sas7bdat",
     adtte_path = "path/to/adtte.sas7bdat",
     stratify_by = "NONEXISTENT_VAR"
   )

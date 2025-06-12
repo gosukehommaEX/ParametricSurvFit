@@ -4,14 +4,14 @@
 #' parametric survival analysis. It allows flexible specification of analysis
 #' population, survival parameter, and stratification factors.
 #'
-#' @param adslph_path Character string specifying the file path to the ADSLPH dataset
+#' @param adsl_path Character string specifying the file path to the ADSL dataset
 #' @param adtte_path Character string specifying the file path to the ADTTE dataset
 #' @param population Character string specifying the analysis population flag.
 #'   Must be one of "SAFFL", "ITTFL", or "RANDFL". Default is "ITTFL"
 #' @param variable Character string specifying the parameter code from PARAMCD
 #'   column in ADTTE dataset. Default is "OS" (Overall Survival)
 #' @param stratify_by Character string specifying the column name for stratification
-#'   factor from ADSLPH dataset, or NULL for no stratification. Default is "SEX"
+#'   factor from ADSL dataset, or NULL for no stratification. Default is "SEX"
 #'
 #' @return A data frame containing the following columns:
 #'   \item{SUBJID}{Subject identifier}
@@ -42,7 +42,7 @@
 #' \dontrun{
 #' # Create dataset for overall survival analysis with ITT population
 #' surv_data <- DataParametricSurv(
-#'   adslph_path = "path/to/adslph.sas7bdat",
+#'   adsl_path = "path/to/adsl.sas7bdat",
 #'   adtte_path = "path/to/adtte.sas7bdat",
 #'   population = "ITTFL",
 #'   variable = "OS",
@@ -51,7 +51,7 @@
 #'
 #' # Example of using the stratification variable name in FitSurvMods
 #' surv_data_region <- DataParametricSurv(
-#'   adslph_path = "path/to/adslph.sas7bdat",
+#'   adsl_path = "path/to/adsl.sas7bdat",
 #'   adtte_path = "path/to/adtte.sas7bdat",
 #'   population = "SAFFL",
 #'   variable = "PFS",
@@ -61,7 +61,7 @@
 #' # Use the original variable name in the output table
 #' results <- FitSurvMods(surv_data_region, stratify_name = "REGION")
 #' }
-DataParametricSurv <- function(adslph_path,
+DataParametricSurv <- function(adsl_path,
                                adtte_path,
                                population = "ITTFL",
                                variable = "OS",
@@ -74,12 +74,12 @@ DataParametricSurv <- function(adslph_path,
   }
 
   # Read ADaM datasets
-  adam_adslph <- haven::read_sas(adslph_path)
+  adam_adsl <- haven::read_sas(adsl_path)
   s_adam_adtte <- haven::read_sas(adtte_path)
 
-  # Check if stratify_by column exists in ADSLPH (only if not NULL)
-  if (!is.null(stratify_by) && !stratify_by %in% names(adam_adslph)) {
-    stop("Stratification variable '", stratify_by, "' not found in ADSLPH dataset")
+  # Check if stratify_by column exists in ADSL (only if not NULL)
+  if (!is.null(stratify_by) && !stratify_by %in% names(adam_adsl)) {
+    stop("Stratification variable '", stratify_by, "' not found in ADSL dataset")
   }
 
   # Check if population flag exists in ADTTE
@@ -99,16 +99,16 @@ DataParametricSurv <- function(adslph_path,
   # Select columns based on whether stratification is used
   if (is.null(stratify_by)) {
     # No stratification - select only SUBJID and ARM
-    adslph_selected <- adam_adslph %>%
+    adsl_selected <- adam_adsl %>%
       dplyr::select(SUBJID, ARM)
   } else {
     # With stratification - select SUBJID, ARM, and stratification variable
-    adslph_selected <- adam_adslph %>%
+    adsl_selected <- adam_adsl %>%
       dplyr::select(SUBJID, ARM, !!rlang::sym(stratify_by))
   }
 
   # Create dataset including necessary information
-  dataset <- adslph_selected %>%
+  dataset <- adsl_selected %>%
     dplyr::left_join(
       s_adam_adtte %>%
         dplyr::select(SUBJID, PARAMCD, SURVTIME, CNSR, !!rlang::sym(population)),

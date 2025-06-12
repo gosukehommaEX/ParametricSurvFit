@@ -4,7 +4,7 @@ test_that("DataParametricSurv validates parameters correctly", {
   # Test invalid population
   expect_error(
     DataParametricSurv(
-      adslph_path = "dummy.sas7bdat",
+      adsl_path = "dummy.sas7bdat",
       adtte_path = "dummy.sas7bdat",
       population = "INVALID"
     ),

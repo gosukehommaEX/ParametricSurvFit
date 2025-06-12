@@ -48,7 +48,7 @@
 #' \dontrun{
 #' # Create survival dataset first
 #' surv_data <- DataParametricSurv(
-#'   adslph_path = "path/to/adslph.sas7bdat",
+#'   adsl_path = "path/to/adsl.sas7bdat",
 #'   adtte_path = "path/to/adtte.sas7bdat",
 #'   population = "ITTFL",
 #'   variable = "OS",
@@ -78,7 +78,7 @@
 #'
 #' # Fit models for PFS data
 #' pfs_data <- DataParametricSurv(
-#'   adslph_path = "path/to/adslph.sas7bdat",
+#'   adsl_path = "path/to/adsl.sas7bdat",
 #'   adtte_path = "path/to/adtte.sas7bdat",
 #'   population = "ITTFL",
 #'   variable = "PFS",

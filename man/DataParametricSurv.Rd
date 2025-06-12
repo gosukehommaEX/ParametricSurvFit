@@ -5,7 +5,7 @@
 \title{Create Dataset for Parametric Survival Analysis}
 \usage{
 DataParametricSurv(
-  adslph_path,
+  adsl_path,
   adtte_path,
   population = "ITTFL",
   variable = "OS",
@@ -13,7 +13,7 @@ DataParametricSurv(
 )
 }
 \arguments{
-\item{adslph_path}{Character string specifying the file path to the ADSLPH dataset}
+\item{adsl_path}{Character string specifying the file path to the ADSL dataset}
 
 \item{adtte_path}{Character string specifying the file path to the ADTTE dataset}
 
@@ -24,7 +24,7 @@ Must be one of "SAFFL", "ITTFL", or "RANDFL". Default is "ITTFL"}
 column in ADTTE dataset. Default is "OS" (Overall Survival)}
 
 \item{stratify_by}{Character string specifying the column name for stratification
-factor from ADSLPH dataset, or NULL for no stratification. Default is "SEX"}
+factor from ADSL dataset, or NULL for no stratification. Default is "SEX"}
 }
 \value{
 A data frame containing the following columns:
@@ -55,7 +55,7 @@ The function performs the following operations:
 \dontrun{
 # Create dataset for overall survival analysis with ITT population
 surv_data <- DataParametricSurv(
-  adslph_path = "path/to/adslph.sas7bdat",
+  adsl_path = "path/to/adsl.sas7bdat",
   adtte_path = "path/to/adtte.sas7bdat",
   population = "ITTFL",
   variable = "OS",
@@ -64,7 +64,7 @@ surv_data <- DataParametricSurv(
 
 # Example of using the stratification variable name in FitSurvMods
 surv_data_region <- DataParametricSurv(
-  adslph_path = "path/to/adslph.sas7bdat",
+  adsl_path = "path/to/adsl.sas7bdat",
   adtte_path = "path/to/adtte.sas7bdat",
   population = "SAFFL",
   variable = "PFS",
