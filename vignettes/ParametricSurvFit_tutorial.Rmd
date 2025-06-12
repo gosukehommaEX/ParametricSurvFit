@@ -25,7 +25,7 @@ The `ParametricSurvFit` package provides a comprehensive suite of functions for 
 
 ```{r installation}
 # Install from GitHub
-devtools::install_github("yourusername/ParametricSurvFit")
+devtools::install_github("gosukehommaEX/ParametricSurvFit")
 
 # Load the package
 library(ParametricSurvFit)
@@ -33,17 +33,16 @@ library(ParametricSurvFit)
 
 ## Overview of Functions
 
-The package provides three main functions:
+The package provides four main functions:
 
 1. **`DataParametricSurv()`**: Prepares ADaM datasets for survival analysis
 2. **`FitSurvMods()`**: Fits multiple parametric distributions and creates formatted tables
 3. **`ExtractParams()`**: Extracts parameters from individual fitted models
+4. **`ExtractCovarianceMatrix()`**: Extracts variance-covariance matrices from fitted models
 
 ## Basic Workflow
 
 ### Step 1: Prepare the Data
-
-The first step is to create a standardized dataset from your ADaM files:
 
 ```{r data_prep}
 # Basic usage - Overall Survival analysis with sex stratification
@@ -62,8 +61,6 @@ head(surv_data)
 
 ### Step 2: Fit Parametric Models
 
-Once you have prepared data, you can fit multiple parametric distributions:
-
 ```{r fit_models}
 # Fit all available distributions
 results_all <- FitSurvMods(
@@ -75,272 +72,58 @@ results_all <- FitSurvMods(
 results_all
 ```
 
-### Step 3: Customize Your Analysis
+### Step 3: Extract Covariance Matrices
 
-You can customize various aspects of the analysis:
-
-```{r custom_analysis}
-# Fit only specific distributions
-results_selected <- FitSurvMods(
+```{r covariance_analysis}
+# Extract covariance matrix for Weibull distribution
+cov_weibull <- ExtractCovarianceMatrix(
   dataset = surv_data,
-  distributions = c("exp", "weibull", "lnorm", "llogis"),
-  table_caption = "Selected Parametric Models for OS"
+  distribution = "weibull",
+  parameter_name = "Overall Survival",
+  stratify_reference_level = "M",  # Use Male as reference
+  create_kable = TRUE
 )
 
-# Get raw data instead of formatted table
-results_raw <- FitSurvMods(
-  dataset = surv_data,
-  distributions = c("weibull", "gamma"),
-  format_output = FALSE  # Returns data frame instead of formatted table
-)
-
-print(results_raw)
+# Display the formatted covariance matrix
+print(cov_weibull)
 ```
 
 ## Advanced Examples
 
-### Example 1: Progression-Free Survival Analysis
+### Example 1: Covariance Matrix with Shape Parameters
 
-```{r pfs_example}
-# Analyze PFS stratified by region
-pfs_data <- DataParametricSurv(
-  adsl_path = "path/to/adsl.sas7bdat",
-  adtte_path = "path/to/adtte.sas7bdat",
-  population = "ITTFL",
-  variable = "PFS",          # Progression-Free Survival
-  stratify_by = "REGION"     # Stratify by geographic region
-)
-
-# Fit models with custom stratification name in output
-pfs_results <- FitSurvMods(
-  dataset = pfs_data,
-  distributions = c("exp", "weibull", "lnorm", "gamma"),
-  table_caption = "PFS Analysis by Geographic Region",
-  stratify_name = "REGION"   # Use original variable name in table
-)
-
-pfs_results
-```
-
-### Example 2: Safety Population Analysis
-
-```{r safety_example}
-# Analyze safety population without stratification
-safety_data <- DataParametricSurv(
-  adsl_path = "path/to/adsl.sas7bdat",
-  adtte_path = "path/to/adtte.sas7bdat",
-  population = "SAFFL",      # Safety population
-  variable = "OS",
-  stratify_by = NULL         # No stratification
-)
-
-# Fit comprehensive set of distributions
-safety_results <- FitSurvMods(
-  dataset = safety_data,
-  distributions = c("exp", "weibull", "lnorm", "llogis", "gompertz", "gengamma", "gamma"),
-  table_caption = "Comprehensive Parametric Analysis - Safety Population"
-)
-
-safety_results
-```
-
-### Example 3: Custom Parameter Extraction
-
-For more detailed analysis, you can extract parameters from individual models:
-
-```{r param_extraction}
-library(flexsurv)
-library(survival)
-
-# Fit a single model manually
-weibull_fit <- flexsurvreg(
-  Surv(SURVTIME, EVENT) ~ 1, 
-  data = subset(surv_data, ARM == "Treatment A" & STRATIFY == "Male"),
-  dist = "weibull"
-)
-
-# Extract parameters using our function
-weibull_params <- ExtractParams(weibull_fit, "weibull")
-print(weibull_params)
-```
-
-## Supported Distributions
-
-The package supports seven parametric distributions:
-
-| Distribution | Code | Parameters | Use Case |
-|--------------|------|------------|----------|
-| Exponential | `"exp"` | Rate, Intercept | Constant hazard |
-| Weibull | `"weibull"` | Shape, Scale, Intercept | Increasing/decreasing hazard |
-| Log-normal | `"lnorm"` | Intercept (meanlog), Scale (sdlog) | Non-monotonic hazard |
-| Log-logistic | `"llogis"` | Intercept, Scale | Non-monotonic hazard |
-| Gompertz | `"gompertz"` | Intercept, Rate, Shape | Age-related mortality |
-| Generalized Gamma | `"gengamma"` | Intercept (mu), Scale (sigma), Shape (Q) | Flexible shape |
-| Gamma | `"gamma"` | Intercept, Shape, Rate | Alternative to Weibull |
-
-## Population and Variable Options
-
-### Population Flags
-- `"ITTFL"`: Intent-to-Treat population (default)
-- `"SAFFL"`: Safety population  
-- `"RANDFL"`: Randomized population
-
-### Common Survival Variables
-- `"OS"`: Overall Survival (default)
-- `"PFS"`: Progression-Free Survival
-- `"DFS"`: Disease-Free Survival
-- `"EFS"`: Event-Free Survival
-- `"TTNT"`: Time to Next Treatment
-
-## Understanding the Output
-
-The formatted output table includes:
-
-- **Distribution**: The fitted parametric distribution
-- **ARM**: Treatment arm from the study
-- **STRATIFY**: Stratification factor level (or custom name)
-- **Parameter**: Distribution parameter name
-- **Coefficient Estimate**: Parameter estimate
-- **SE**: Standard error of the estimate
-- **95% Confidence Limits**: Lower and upper confidence bounds
-
-### Parameter Interpretations
-
-#### Exponential Distribution
-- **Rate**: Instantaneous hazard rate
-- **Intercept**: Log of the rate parameter
-
-#### Weibull Distribution  
-- **Shape**: Shape parameter (>1 increasing hazard, <1 decreasing hazard)
-- **Scale**: Scale parameter
-- **Intercept**: Log of the scale parameter
-
-#### Log-normal Distribution
-- **Intercept**: Mean of log survival times
-- **Scale**: Standard deviation of log survival times
-
-## Model Selection and Comparison
-
-While this package focuses on parameter estimation, you can compare models using:
-
-```{r model_comparison}
-# Get raw results for model comparison
-raw_results <- FitSurvMods(
+```{r advanced_covariance}
+# Gamma with shape parameter included
+cov_gamma_shape <- ExtractCovarianceMatrix(
   dataset = surv_data,
-  distributions = c("exp", "weibull", "lnorm", "llogis"),
-  format_output = FALSE
+  distribution = "gamma",
+  include_shape = TRUE,
+  stratify_reference_level = "F",  # Use Female as reference
+  parameter_name = "Overall Survival with Shape",
+  create_kable = TRUE
 )
 
-# You can then calculate AIC/BIC manually for each fitted model
-# (Note: This would require storing the fitted model objects)
+print(cov_gamma_shape)
 ```
 
-## Tips for Effective Use
+### Example 2: Multiple Distribution Analysis
 
-### 1. Data Quality Checks
-```{r data_checks}
-# Always check your prepared data
-summary(surv_data)
+```{r multiple_distributions}
+# Compare covariance matrices across distributions
+distributions_to_test <- c("exp", "weibull", "gamma")
 
-# Check for missing values
-colSums(is.na(surv_data))
-
-# Verify stratification levels
-table(surv_data$ARM, surv_data$STRATIFY)
-```
-
-### 2. Distribution Selection
-Start with commonly used distributions:
-- **Exponential**: Simple baseline model
-- **Weibull**: Most commonly used in oncology
-- **Log-normal**: Good for non-monotonic hazards
-
-### 3. Convergence Issues
-If models fail to converge:
-- Check for sufficient sample size in each stratum
-- Consider combining small strata
-- Try different starting values (advanced usage)
-
-## Error Handling
-
-The package includes comprehensive error checking:
-
-```{r error_examples}
-# Example of error handling
-try({
-  # This will fail if stratification variable doesn't exist
-  bad_data <- DataParametricSurv(
-    adsl_path = "path/to/adsl.sas7bdat",
-    adtte_path = "path/to/adtte.sas7bdat",
-    stratify_by = "NONEXISTENT_VAR"
-  )
-})
-
-try({
-  # This will fail if invalid distribution is specified
-  bad_results <- FitSurvMods(
+for (dist in distributions_to_test) {
+  cov_result <- ExtractCovarianceMatrix(
     dataset = surv_data,
-    distributions = c("invalid_dist")
+    distribution = dist,
+    stratify_reference_level = "M",
+    parameter_name = paste("Overall Survival -", toupper(dist))
   )
-})
+  
+  cat("\n=== Covariance Matrix for", toupper(dist), "Distribution ===\n")
+  print(cov_result)
+}
 ```
-
-## Exporting Results
-
-The formatted tables can be easily exported:
-
-```{r export_results}
-# Save as HTML
-results_table <- FitSurvMods(surv_data)
-
-# Export to HTML file
-kableExtra::save_kable(results_table, "survival_results.html")
-
-# For PDF output in reports
-knitr::kable(results_raw, format = "latex", booktabs = TRUE)
-```
-
-## Integration with Other Packages
-
-The package works well with other survival analysis packages:
-
-```{r integration}
-library(survminer)
-library(ggplot2)
-
-# Create Kaplan-Meier plots alongside parametric fits
-km_fit <- survival::survfit(Surv(SURVTIME, EVENT) ~ ARM + STRATIFY, data = surv_data)
-ggsurvplot(km_fit, data = surv_data)
-
-# You can overlay parametric curves using flexsurv plotting functions
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **File path errors**: Ensure SAS file paths are correct and accessible
-2. **Missing variables**: Check that population flags and PARAMCD values exist
-3. **Convergence failures**: May occur with small sample sizes or inappropriate distributions
-4. **Memory issues**: Large datasets may require chunking or filtering
-
-### Getting Help
-
-For additional help:
-- Check function documentation: `?FitSurvMods`
-- Report issues on GitHub: [Package Issues](https://github.com/yourusername/ParametricSurvFit/issues)
-- Email the maintainer: my.name.is.gosuke@gmail.com
-
-## Conclusion
-
-The `ParametricSurvFit` package streamlines parametric survival analysis for clinical trial data. Its integration with ADaM standards and comprehensive output formatting makes it particularly useful for pharmaceutical research applications.
-
-Key advantages:
-- Standardized workflow for ADaM datasets
-- Multiple distribution support
-- Professional formatted output
-- Flexible stratification options
-- Comprehensive error checking
 
 ## Session Information
 

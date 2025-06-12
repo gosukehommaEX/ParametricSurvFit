@@ -8,13 +8,14 @@
 
 ## Overview
 
-`ParametricSurvFit` is a comprehensive R package designed for fitting multiple parametric survival distributions to clinical trial data. It provides streamlined functions for analyzing ADaM datasets commonly used in pharmaceutical research, with support for stratified analysis and formatted output tables.
+`ParametricSurvFit` is a comprehensive R package designed for fitting multiple parametric survival distributions to clinical trial data. It provides streamlined functions for analyzing ADaM datasets commonly used in pharmaceutical research, with support for stratified analysis, covariance matrix extraction, and formatted output tables.
 
 ## Features
 
 - **Multiple Distribution Support**: Fit exponential, Weibull, log-normal, log-logistic, Gompertz, generalized gamma, and gamma distributions
 - **ADaM Dataset Integration**: Direct support for ADSL and ADTTE datasets
 - **Stratified Analysis**: Flexible stratification by any categorical variable
+- **Covariance Matrix Extraction**: Extract variance-covariance matrices from fitted models
 - **Formatted Output**: Professional tables with kableExtra formatting
 - **Parameter Extraction**: Comprehensive extraction of distribution parameters with confidence intervals
 - **Population Filtering**: Support for ITT, Safety, and Randomized populations
@@ -44,6 +45,7 @@ The package requires the following R packages:
 - `haven` (>= 2.4.0)
 - `kableExtra` (>= 1.3.0)
 - `rlang` (>= 0.4.0)
+- `stats` (>= 3.5.0)
 
 ## Quick Start
 
@@ -66,8 +68,17 @@ results <- FitSurvMods(
   table_caption = "Parametric Models for Overall Survival"
 )
 
-# 3. View formatted results
+# 3. Extract covariance matrix for a specific distribution
+cov_matrix <- ExtractCovarianceMatrix(
+  dataset = surv_data,
+  distribution = "weibull",
+  stratify_reference_level = "M",  # Use Male as reference
+  create_kable = TRUE
+)
+
+# 4. View formatted results
 print(results)
+print(cov_matrix)
 ```
 
 ## Main Functions
@@ -75,28 +86,21 @@ print(results)
 ### `DataParametricSurv()`
 Creates a standardized dataset for parametric survival analysis from ADaM datasets.
 
-**Key Parameters:**
-- `adsl_path`: Path to ADSL dataset
-- `adtte_path`: Path to ADTTE dataset  
-- `population`: Analysis population ("ITTFL", "SAFFL", or "RANDFL")
-- `variable`: Survival endpoint ("OS", "PFS", etc.)
-- `stratify_by`: Stratification variable name or NULL
-
 ### `FitSurvMods()`
 Fits multiple parametric survival distributions and creates formatted output tables.
-
-**Key Parameters:**
-- `dataset`: Output from `DataParametricSurv()`
-- `distributions`: Vector of distribution names to fit
-- `format_output`: Whether to return formatted table (TRUE) or raw data (FALSE)
-- `table_caption`: Caption for the output table
 
 ### `ExtractParams()`
 Extracts parameters, standard errors, and confidence intervals from fitted models.
 
+### `ExtractCovarianceMatrix()` 🆕
+Extracts variance-covariance matrices from fitted parametric survival models.
+
 **Key Parameters:**
-- `fit_model`: Fitted flexsurv model object
-- `distribution`: Distribution name
+- `dataset`: Output from `DataParametricSurv()`
+- `distribution`: Single distribution name to fit
+- `include_shape`: Include shape parameters in covariance matrix (for applicable distributions)
+- `create_kable`: Return formatted kable output
+- `stratify_reference_level`: Specify reference level for stratification (e.g., "M" or "F" for SEX)
 
 ## Supported Distributions
 
@@ -128,32 +132,61 @@ results <- FitSurvMods(surv_data, distributions = c("exp", "weibull"))
 
 ### Stratified Analysis
 ```r
-# Analysis stratified by region
-surv_data_region <- DataParametricSurv(
+# Analysis stratified by sex
+surv_data_sex <- DataParametricSurv(
   adsl_path = "adsl.sas7bdat",
   adtte_path = "adtte.sas7bdat",
   population = "ITTFL",
-  variable = "PFS",
-  stratify_by = "REGION"
+  variable = "OS",
+  stratify_by = "SEX"
 )
 
-results_region <- FitSurvMods(
-  dataset = surv_data_region,
+results_sex <- FitSurvMods(
+  dataset = surv_data_sex,
   distributions = c("exp", "weibull", "gamma"),
-  table_caption = "PFS Analysis by Region",
-  stratify_name = "REGION"
+  table_caption = "OS Analysis by Sex",
+  stratify_name = "SEX"
 )
 ```
 
-### Custom Distribution Selection
+### Covariance Matrix Analysis
 ```r
-# Fit only specific distributions
-results_custom <- FitSurvMods(
-  dataset = surv_data,
-  distributions = c("weibull", "lnorm", "gengamma"),
-  format_output = FALSE  # Return raw data frame
+# Extract covariance matrix for Weibull distribution
+cov_weibull <- ExtractCovarianceMatrix(
+  dataset = surv_data_sex,
+  distribution = "weibull",
+  parameter_name = "Overall Survival",
+  stratify_reference_level = "M",  # Use Male as reference
+  create_kable = TRUE
+)
+
+# Include shape parameter for gamma distribution
+cov_gamma_with_shape <- ExtractCovarianceMatrix(
+  dataset = surv_data_sex,
+  distribution = "gamma",
+  include_shape = TRUE,
+  stratify_reference_level = "F"  # Use Female as reference
 )
 ```
+
+## Covariance Matrix Features
+
+The `ExtractCovarianceMatrix()` function provides:
+- **Distribution-specific handling**: Adapts to each distribution's parameter structure
+- **Shape parameter control**: Optional inclusion of shape parameters
+- **Reference level specification**: Control stratification encoding (e.g., "M" vs "F" for SEX)
+- **Formatted output**: Professional kable tables with merged cells
+- **Raw matrix option**: For advanced statistical analysis
+
+### Distributions with Shape Parameters
+- **Gamma**: `include_shape = TRUE` includes the shape parameter
+- **Generalized Gamma**: `include_shape = TRUE` includes the Q parameter
+- **Gompertz**: `include_shape = TRUE` includes the shape parameter
+
+### Common Stratification Reference Levels
+- **SEX**: Use `"M"` (Male) or `"F"` (Female)
+- **REGION**: Use specific region codes like `"US"`, `"EU"`, etc.
+- **AGE_GROUP**: Use `"<65"`, `">=65"`, etc.
 
 ## Output Format
 
@@ -164,7 +197,6 @@ The package provides professionally formatted tables with:
 - Stratified results when applicable
 - Interactive hover effects
 - Exportable formats (HTML, PDF, etc.)
-
 
 ## License
 
