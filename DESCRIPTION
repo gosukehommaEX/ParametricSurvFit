@@ -13,12 +13,12 @@ Description: A comprehensive package for fitting multiple parametric survival
     distributions to clinical trial data. Supports exponential, Weibull, 
     log-normal, log-logistic, Gompertz, generalized gamma, and gamma 
     distributions. Provides formatted output tables, covariance matrix extraction,
-    and stratified analysis capabilities for ADaM datasets commonly used in 
-    pharmaceutical research.
+    stratified analysis capabilities, and Kaplan-Meier visualization with 
+    parametric overlays for ADaM datasets commonly used in pharmaceutical research.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.3.2
+RoxygenType: 7.3.2
 Depends: R (>= 3.5.0)
 Imports:
     dplyr (>= 1.0.0),
@@ -30,12 +30,15 @@ Imports:
     kableExtra (>= 1.3.0),
     rlang (>= 0.4.0),
     magrittr (>= 2.0.0),
-    stats (>= 3.5.0)
+    stats (>= 3.5.0),
+    ggplot2 (>= 3.3.0),
+    survminer (>= 0.4.0)
 Suggests:
     testthat (>= 3.0.0),
     knitr,
     rmarkdown,
     covr
 VignetteBuilder: knitr
-URL: https://github.com/yourusername/ParametricSurvFit
-BugReports: https://github.com/yourusername/ParametricSurvFit/issues
+URL: https://github.com/gosukehommaEX/ParametricSurvFit
+BugReports: https://github.com/gosukehommaEX/ParametricSurvFit/issues
+RoxygenNote: 7.3.2

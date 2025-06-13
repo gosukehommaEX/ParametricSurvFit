@@ -8,7 +8,7 @@
 
 ## Overview
 
-`ParametricSurvFit` is a comprehensive R package designed for fitting multiple parametric survival distributions to clinical trial data. It provides streamlined functions for analyzing ADaM datasets commonly used in pharmaceutical research, with support for stratified analysis, covariance matrix extraction, and formatted output tables.
+`ParametricSurvFit` is a comprehensive R package designed for fitting multiple parametric survival distributions to clinical trial data. It provides streamlined functions for analyzing ADaM datasets commonly used in pharmaceutical research, with support for stratified analysis, covariance matrix extraction, formatted output tables, and visualization with Kaplan-Meier curves.
 
 ## Features
 
@@ -19,6 +19,8 @@
 - **Formatted Output**: Professional tables with kableExtra formatting
 - **Parameter Extraction**: Comprehensive extraction of distribution parameters with confidence intervals
 - **Population Filtering**: Support for ITT, Safety, and Randomized populations
+- **🆕 Kaplan-Meier Visualization**: Create KM curves with parametric distribution overlays
+- **🆕 Professional Plotting**: Risk tables, customizable colors, and parameter annotations
 
 ## Installation
 
@@ -46,6 +48,8 @@ The package requires the following R packages:
 - `kableExtra` (>= 1.3.0)
 - `rlang` (>= 0.4.0)
 - `stats` (>= 3.5.0)
+- `🆕 ggplot2` (>= 3.3.0)
+- `🆕 survminer` (>= 0.4.0)
 
 ## Quick Start
 
@@ -76,9 +80,20 @@ cov_matrix <- ExtractCovarianceMatrix(
   create_kable = TRUE
 )
 
-# 4. View formatted results
+# 4. 🆕 Create Kaplan-Meier plots with parametric overlays
+km_plots <- ParametricSurvKM(
+  dataset = surv_data,
+  distribution = "weibull",
+  figure_caption = "Overall Survival Analysis",
+  stratify_name = "SEX",
+  control_arm = "Placebo",
+  time_scale = "Months"
+)
+
+# 5. View results
 print(results)
 print(cov_matrix)
+print(km_plots)  # Display all stratified plots
 ```
 
 ## Main Functions
@@ -92,15 +107,27 @@ Fits multiple parametric survival distributions and creates formatted output tab
 ### `ExtractParams()`
 Extracts parameters, standard errors, and confidence intervals from fitted models.
 
-### `ExtractCovarianceMatrix()` 🆕
+### `ExtractCovarianceMatrix()`
 Extracts variance-covariance matrices from fitted parametric survival models.
+
+### `ParametricSurvKM()` 🆕
+Creates Kaplan-Meier survival curves with overlaid parametric distribution fits.
 
 **Key Parameters:**
 - `dataset`: Output from `DataParametricSurv()`
-- `distribution`: Single distribution name to fit
-- `include_shape`: Include shape parameters in covariance matrix (for applicable distributions)
-- `create_kable`: Return formatted kable output
-- `stratify_reference_level`: Specify reference level for stratification (e.g., "M" or "F" for SEX)
+- `distribution`: Single distribution name to overlay (e.g., "weibull", "exp")
+- `control_arm`: Specify which ARM should be treated as control (red color)
+- `time_scale`: Label for time axis ("Months", "Years", "Weeks", "Days")
+- `time_max`: Maximum time for x-axis
+- `return_plots`: Return plot objects vs. display directly
+
+**Features:**
+- Separate panels for each stratification level
+- Color-coded treatment arms (control=red, treatment=blue)
+- Risk tables with proper alignment
+- Parameter estimates displayed on plots
+- Customizable time scales and axes
+- Professional survminer-based styling
 
 ## Supported Distributions
 
@@ -116,7 +143,7 @@ Extracts variance-covariance matrices from fitted parametric survival models.
 
 ## Example Workflows
 
-### Basic Analysis
+### Basic Analysis with Visualization
 ```r
 # Simple overall survival analysis without stratification
 surv_data <- DataParametricSurv(
@@ -127,10 +154,12 @@ surv_data <- DataParametricSurv(
   stratify_by = NULL  # No stratification
 )
 
+# Fit models and create plots
 results <- FitSurvMods(surv_data, distributions = c("exp", "weibull"))
+plots <- ParametricSurvKM(surv_data, distribution = "weibull")
 ```
 
-### Stratified Analysis
+### Stratified Analysis with Custom Visualization
 ```r
 # Analysis stratified by sex
 surv_data_sex <- DataParametricSurv(
@@ -141,32 +170,65 @@ surv_data_sex <- DataParametricSurv(
   stratify_by = "SEX"
 )
 
-results_sex <- FitSurvMods(
-  dataset = surv_data_sex,
-  distributions = c("exp", "weibull", "gamma"),
-  table_caption = "OS Analysis by Sex",
-  stratify_name = "SEX"
-)
-```
-
-### Covariance Matrix Analysis
-```r
-# Extract covariance matrix for Weibull distribution
-cov_weibull <- ExtractCovarianceMatrix(
+# Create customized KM plots
+km_plots_custom <- ParametricSurvKM(
   dataset = surv_data_sex,
   distribution = "weibull",
-  parameter_name = "Overall Survival",
-  stratify_reference_level = "M",  # Use Male as reference
+  figure_caption = "Overall Survival by Sex",
+  stratify_name = "SEX",
+  control_arm = "Placebo",
+  time_scale = "Years",
+  time_max = 5
+)
+
+# Access individual plots for each sex
+male_plot <- km_plots_custom[["SEX_M"]]
+female_plot <- km_plots_custom[["SEX_F"]]
+
+# Save plots
+ggsave("OS_Male_weibull.png", male_plot$plot, width = 12, height = 8)
+ggsave("OS_Female_weibull.png", female_plot$plot, width = 12, height = 8)
+```
+
+### Complete Analysis Pipeline
+```r
+# 1. Prepare data with region stratification
+surv_data_region <- DataParametricSurv(
+  adsl_path = "adsl.sas7bdat",
+  adtte_path = "adtte.sas7bdat",
+  population = "SAFFL",
+  variable = "PFS",
+  stratify_by = "REGION"
+)
+
+# 2. Fit all distributions
+results_all <- FitSurvMods(
+  dataset = surv_data_region,
+  table_caption = "PFS Analysis by Region"
+)
+
+# 3. Extract covariance for best-fitting distribution
+cov_weibull <- ExtractCovarianceMatrix(
+  dataset = surv_data_region,
+  distribution = "weibull",
+  stratify_reference_level = "US",
   create_kable = TRUE
 )
 
-# Include shape parameter for gamma distribution
-cov_gamma_with_shape <- ExtractCovarianceMatrix(
-  dataset = surv_data_sex,
-  distribution = "gamma",
-  include_shape = TRUE,
-  stratify_reference_level = "F"  # Use Female as reference
+# 4. Create visualizations
+plots_weibull <- ParametricSurvKM(
+  dataset = surv_data_region,
+  distribution = "weibull",
+  figure_caption = "Progression-Free Survival by Region",
+  stratify_name = "REGION",
+  control_arm = "Control",
+  time_scale = "Months"
 )
+
+# 5. Display results
+print(results_all)
+print(cov_weibull)
+print(plots_weibull)
 ```
 
 ## Covariance Matrix Features
@@ -188,15 +250,28 @@ The `ExtractCovarianceMatrix()` function provides:
 - **REGION**: Use specific region codes like `"US"`, `"EU"`, etc.
 - **AGE_GROUP**: Use `"<65"`, `">=65"`, etc.
 
+## Visualization Features 🆕
+
+The `ParametricSurvKM()` function provides:
+- **Professional KM curves** using survminer package
+- **Parametric overlays** as dashed lines matching treatment colors
+- **Risk tables** properly aligned with x-axis
+- **Parameter annotations** showing estimates on each plot
+- **Color coding**: Control arm (red), Treatment arm (blue)
+- **Flexible time scales**: Months, Years, Weeks, Days
+- **Stratified panels**: Separate plots for each stratification level
+- **Exportable plots**: High-quality ggplot2 objects ready for publication
+
 ## Output Format
 
-The package provides professionally formatted tables with:
+The package provides professionally formatted tables and plots with:
 - Grouped headers by distribution
 - Parameter estimates with standard errors
 - 95% confidence intervals
 - Stratified results when applicable
 - Interactive hover effects
-- Exportable formats (HTML, PDF, etc.)
+- Exportable formats (HTML, PDF, PNG, etc.)
+- Publication-ready visualizations
 
 ## License
 
@@ -216,3 +291,5 @@ R package version 0.1.0. https://github.com/gosukehommaEX/ParametricSurvFit
 - Built using the excellent [flexsurv](https://github.com/chjackson/flexsurv) package
 - Table formatting powered by [kableExtra](https://github.com/haozhu233/kableExtra)
 - Data manipulation using the [tidyverse](https://www.tidyverse.org/) ecosystem
+- Survival plotting using [survminer](https://github.com/kassambara/survminer) package
+- Visualization with [ggplot2](https://ggplot2.tidyverse.org/)

@@ -21,6 +21,8 @@ knitr::opts_chunk$set(
 
 The `ParametricSurvFit` package provides a comprehensive suite of functions for fitting parametric survival distributions to clinical trial data. This vignette demonstrates the main functionality using ADaM datasets commonly used in pharmaceutical research.
 
+The package now includes visualization capabilities with Kaplan-Meier curves and parametric distribution overlays, making it a complete solution for parametric survival analysis.
+
 ## Installation
 
 ```{r installation}
@@ -33,12 +35,13 @@ library(ParametricSurvFit)
 
 ## Overview of Functions
 
-The package provides four main functions:
+The package provides five main functions:
 
 1. **`DataParametricSurv()`**: Prepares ADaM datasets for survival analysis
 2. **`FitSurvMods()`**: Fits multiple parametric distributions and creates formatted tables
 3. **`ExtractParams()`**: Extracts parameters from individual fitted models
 4. **`ExtractCovarianceMatrix()`**: Extracts variance-covariance matrices from fitted models
+5. **`ParametricSurvKM()`**: 🆕 Creates Kaplan-Meier curves with parametric overlays
 
 ## Basic Workflow
 
@@ -88,9 +91,79 @@ cov_weibull <- ExtractCovarianceMatrix(
 print(cov_weibull)
 ```
 
+### Step 4: Create Kaplan-Meier Visualizations 🆕
+
+```{r km_visualization}
+# Create KM plots with Weibull overlay
+km_plots <- ParametricSurvKM(
+  dataset = surv_data,
+  distribution = "weibull",
+  figure_caption = "Overall Survival Analysis",
+  stratify_name = "SEX",
+  control_arm = "Placebo",
+  time_scale = "Months"
+)
+
+# Display plots (will show separate panels for Male and Female)
+print(km_plots)
+
+# Access individual plots
+male_plot <- km_plots[["SEX_M"]]
+female_plot <- km_plots[["SEX_F"]]
+
+# Save individual plots
+# ggsave("OS_Male_weibull.png", male_plot$plot, width = 12, height = 8)
+# ggsave("OS_Female_weibull.png", female_plot$plot, width = 12, height = 8)
+```
+
 ## Advanced Examples
 
-### Example 1: Covariance Matrix with Shape Parameters
+### Example 1: Complete Parametric Analysis Pipeline
+
+```{r complete_pipeline}
+# 1. Prepare data for PFS analysis by region
+pfs_data <- DataParametricSurv(
+  adsl_path = "path/to/adsl.sas7bdat",
+  adtte_path = "path/to/adtte.sas7bdat",
+  population = "SAFFL",
+  variable = "PFS",
+  stratify_by = "REGION"
+)
+
+# 2. Fit multiple distributions
+pfs_results <- FitSurvMods(
+  dataset = pfs_data,
+  distributions = c("exp", "weibull", "gamma"),
+  table_caption = "PFS Analysis by Region"
+)
+
+# 3. Extract covariance for best model
+cov_gamma <- ExtractCovarianceMatrix(
+  dataset = pfs_data,
+  distribution = "gamma",
+  include_shape = TRUE,
+  stratify_reference_level = "US",
+  parameter_name = "Progression-Free Survival"
+)
+
+# 4. Create visualizations with custom settings
+pfs_plots <- ParametricSurvKM(
+  dataset = pfs_data,
+  distribution = "gamma",
+  figure_caption = "Progression-Free Survival by Region",
+  stratify_name = "REGION",
+  control_arm = "Control",
+  time_scale = "Weeks",
+  time_max = 100
+)
+
+# Display results
+print(pfs_results)
+print(cov_gamma)
+print(pfs_plots)
+```
+
+### Example 2: Covariance Matrix with Shape Parameters
 
 ```{r advanced_covariance}
 # Gamma with shape parameter included
@@ -106,24 +179,82 @@ cov_gamma_shape <- ExtractCovarianceMatrix(
 print(cov_gamma_shape)
 ```
 
-### Example 2: Multiple Distribution Analysis
+### Example 3: Comparing Multiple Distributions Visually
 
-```{r multiple_distributions}
-# Compare covariance matrices across distributions
-distributions_to_test <- c("exp", "weibull", "gamma")
+```{r multiple_distributions_visual}
+# Compare different distributions visually
+distributions_to_compare <- c("exp", "weibull", "gamma")
 
-for (dist in distributions_to_test) {
-  cov_result <- ExtractCovarianceMatrix(
+# Create plots for each distribution
+comparison_plots <- list()
+
+for (dist in distributions_to_compare) {
+  comparison_plots[[dist]] <- ParametricSurvKM(
     dataset = surv_data,
     distribution = dist,
-    stratify_reference_level = "M",
-    parameter_name = paste("Overall Survival -", toupper(dist))
+    figure_caption = paste("Overall Survival -", toupper(dist), "Distribution"),
+    stratify_name = "SEX",
+    control_arm = "Placebo",
+    time_scale = "Months",
+    return_plots = TRUE
   )
-  
-  cat("\n=== Covariance Matrix for", toupper(dist), "Distribution ===\n")
-  print(cov_result)
+}
+
+# Display comparison
+for (dist in names(comparison_plots)) {
+  cat("\n=== Plots for", toupper(dist), "Distribution ===\n")
+  print(comparison_plots[[dist]])
 }
 ```
+
+### Example 4: Customizing Visualization Parameters
+
+```{r custom_visualization}
+# Create highly customized plots
+custom_plots <- ParametricSurvKM(
+  dataset = surv_data,
+  distribution = "weibull",
+  figure_caption = "Overall Survival Analysis - Custom Settings",
+  stratify_name = "SEX",
+  control_arm = "Control",  # Specify control arm
+  time_scale = "Years",     # Use years instead of months
+  time_max = 5,            # Limit to 5 years
+  return_plots = TRUE      # Return plot objects
+)
+
+# Customize further if needed
+# custom_plots[["SEX_M"]]$plot <- custom_plots[["SEX_M"]]$plot + 
+#   ggplot2::theme(legend.position = "bottom")
+```
+
+## Key Features of ParametricSurvKM
+
+The new `ParametricSurvKM()` function provides:
+
+### Visualization Features
+- **Professional KM curves** using the survminer package
+- **Parametric overlays** as dashed lines matching treatment arm colors
+- **Risk tables** properly aligned with the survival curves
+- **Parameter annotations** showing distribution estimates on each plot
+
+### Customization Options
+- **Color coding**: Control arm (red), Treatment arm (blue)
+- **Time scales**: Flexible axis labeling (Months, Years, Weeks, Days)
+- **Stratified panels**: Separate plots for each stratification level
+- **Custom captions**: Personalized figure titles and subtitles
+
+### Export Capabilities
+- **ggplot2 objects**: Publication-ready plots
+- **Individual access**: Extract specific stratified plots
+- **High-quality output**: Suitable for presentations and publications
+
+## Tips for Best Results
+
+1. **Choose appropriate distributions**: Start with exponential and Weibull for most analyses
+2. **Use meaningful stratification**: Sex, region, and age groups are common choices
+3. **Set proper reference levels**: Use the most common or clinically relevant category
+4. **Customize time scales**: Match your study's reporting conventions
+5. **Save plots appropriately**: Use adequate resolution and size for your intended use
 
 ## Session Information
 
