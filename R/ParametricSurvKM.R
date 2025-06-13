@@ -97,6 +97,10 @@ ParametricSurvKM <- function(dataset,
                              time_max = NULL,
                              return_plots = TRUE) {
 
+  # Define variables for NSE to avoid R CMD check notes
+  ARM <- STRATIFY <- SURVTIME <- EVENT <- CNSR <- NULL
+  time <- surv <- NULL
+
   # Load required packages
   required_packages <- c("ggplot2", "survival", "flexsurv", "survminer", "dplyr")
   for (pkg in required_packages) {
@@ -276,12 +280,17 @@ ParametricSurvKM <- function(dataset,
     }
 
     # Add legend for line types in bottom left (moved up slightly and arranged horizontally)
+    # Using Unicode escapes for special characters to avoid non-ASCII warnings
+    legend_text <- paste0(
+      "\u2014\u2014 Kaplan-Meier     - - - Parametric     + Censored"
+    )
+
     base_plot$plot <- base_plot$plot +
       ggplot2::annotate(
         "text",
         x = time_max * 0.02,
         y = 0.28,  # Moved up slightly from 0.35 to 0.28
-        label = "—— Kaplan-Meier     - - - Parametric     + Censored",  # Horizontal arrangement with spacing
+        label = legend_text,  # Horizontal arrangement with spacing
         hjust = 0,
         vjust = 1,
         size = 3,
