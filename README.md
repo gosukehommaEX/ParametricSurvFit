@@ -1,4 +1,4 @@
-# ParametricSurvFit
+# ParametricSurvFit <img src="man/figures/ParametricSurvFit_sticker.png" align="right" height="139" />
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/gosukehommaEX/ParametricSurvFit/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/gosukehommaEX/ParametricSurvFit/actions/workflows/R-CMD-check.yaml)
