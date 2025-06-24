@@ -25,7 +25,7 @@
 #'   labs theme_minimal theme element_text scale_x_log10 scale_y_continuous
 #'   annotation_custom unit element_rect margin
 #' @importFrom survival survfit Surv
-#' @importFrom flexsurv flexsurvreg summary.flexsurvreg
+#' @importFrom flexsurv flexsurvreg
 #' @importFrom dplyr filter mutate arrange group_by summarise
 #' @importFrom stats qnorm
 #' @importFrom grid textGrob gpar
