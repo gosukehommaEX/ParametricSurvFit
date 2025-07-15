@@ -41,7 +41,7 @@ The package provides five main functions:
 2. **`FitSurvMods()`**: Fits multiple parametric distributions and creates formatted tables
 3. **`ExtractParams()`**: Extracts parameters from individual fitted models
 4. **`ExtractCovarianceMatrix()`**: Extracts variance-covariance matrices from fitted models
-5. **`ParametricSurvKM()`**: 🆕 Creates Kaplan-Meier curves with parametric overlays
+5. **`ParametricSurvKM()`**: Creates Kaplan-Meier curves with parametric overlays
 
 ## Basic Workflow
 
