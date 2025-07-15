@@ -131,6 +131,9 @@ ParametricSurvKM <- function(dataset,
   stratify_levels <- unique(dataset$STRATIFY)
   arm_levels <- unique(dataset$ARM)
 
+  # Check if we have stratification (more than one STRATIFY level)
+  has_stratification <- length(stratify_levels) > 1
+
   # Validate ARM levels
   if (length(arm_levels) != 2) {
     stop("This function requires exactly 2 ARM levels, but found: ", length(arm_levels))
@@ -194,6 +197,13 @@ ParametricSurvKM <- function(dataset,
       }
     }
 
+    # Create title and subtitle based on stratification
+    if (has_stratification) {
+      plot_title <- paste0(figure_caption, " - (", stratify_name, " = ", strat_level, ") -")
+    } else {
+      plot_title <- paste0(figure_caption, " - Overall Population -")
+    }
+
     # Create base ggsurvplot with minimal settings to avoid warnings
     base_plot <- suppressWarnings(survminer::ggsurvplot(
       km_fit,
@@ -207,7 +217,7 @@ ParametricSurvKM <- function(dataset,
       ncensor.plot = FALSE,
       ggtheme = ggplot2::theme_minimal(),
       tables.theme = survminer::theme_cleantable(),
-      title = paste0(figure_caption, " - (", stratify_name, " = ", strat_level, ") -"),
+      title = plot_title,
       subtitle = paste("Distribution:", dist_name_map[distribution]),
       xlab = paste0("Time (", time_scale, ")"),  # Dynamic x-axis label based on time_scale
       ylab = "Probability of Survival",
@@ -239,21 +249,45 @@ ParametricSurvKM <- function(dataset,
       n_events <- sum(arm_data$EVENT)
       arm_summary[[as.character(arm)]] <- list(N = n_subjects, Events = n_events)
 
-      # Parametric fit
-      parametric_fits[[as.character(arm)]] <- flexsurv::flexsurvreg(
-        survival::Surv(SURVTIME, EVENT) ~ 1,
-        data = arm_data,
-        dist = distribution
-      )
+      # Parametric fit - use the appropriate distribution type
+      tryCatch({
+        if (distribution %in% c("exp", "weibull", "lnorm", "llogis")) {
+          # Use flexsurv for consistency
+          parametric_fits[[as.character(arm)]] <- flexsurv::flexsurvreg(
+            survival::Surv(SURVTIME, EVENT) ~ 1,
+            data = arm_data,
+            dist = distribution
+          )
+        } else {
+          # Use flexsurv for advanced distributions (gompertz, gengamma, gamma)
+          parametric_fits[[as.character(arm)]] <- flexsurv::flexsurvreg(
+            survival::Surv(SURVTIME, EVENT) ~ 1,
+            data = arm_data,
+            dist = distribution
+          )
+        }
+      }, error = function(e) {
+        warning("Failed to fit ", distribution, " distribution for ARM ", arm, ": ", e$message)
+        parametric_fits[[as.character(arm)]] <- NULL
+      })
 
-      # Extract parameters for display
-      param_info <- ExtractParams(parametric_fits[[as.character(arm)]], distribution)
-      param_text <- paste0(
-        param_info$Parameters, ": ",
-        round(param_info$Estimates, 3),
-        collapse = ", "
-      )
-      param_estimates[[as.character(arm)]] <- param_text
+      # Extract parameters for display if fit was successful
+      if (!is.null(parametric_fits[[as.character(arm)]])) {
+        tryCatch({
+          param_info <- ExtractParams(parametric_fits[[as.character(arm)]], distribution)
+          param_text <- paste0(
+            param_info$Parameters, ": ",
+            round(param_info$Estimates, 3),
+            collapse = ", "
+          )
+          param_estimates[[as.character(arm)]] <- param_text
+        }, error = function(e) {
+          warning("Failed to extract parameters for ARM ", arm, ": ", e$message)
+          param_estimates[[as.character(arm)]] <- "Parameter extraction failed"
+        })
+      } else {
+        param_estimates[[as.character(arm)]] <- "Model fit failed"
+      }
     }
 
     # Create time sequence for parametric curves
@@ -262,21 +296,29 @@ ParametricSurvKM <- function(dataset,
     # Add parametric curves to the plot (using correct ARM colors)
     for (arm in arm_levels) {
       param_fit <- parametric_fits[[as.character(arm)]]
-      param_surv <- summary(param_fit, t = time_seq, type = "survival")[[1]]$est
 
-      # Determine color based on control_arm
-      line_color <- if (arm == control_arm) "red" else "blue"
+      if (!is.null(param_fit)) {
+        tryCatch({
+          # Get survival predictions
+          param_surv <- summary(param_fit, t = time_seq, type = "survival")[[1]]$est
 
-      # Add parametric curve as dashed line
-      base_plot$plot <- base_plot$plot +
-        ggplot2::geom_line(
-          data = data.frame(time = time_seq, surv = param_surv),
-          ggplot2::aes(x = time, y = surv),
-          color = line_color,
-          linetype = "dashed",
-          linewidth = 1,
-          inherit.aes = FALSE
-        )
+          # Determine color based on control_arm
+          line_color <- if (arm == control_arm) "red" else "blue"
+
+          # Add parametric curve as dashed line
+          base_plot$plot <- base_plot$plot +
+            ggplot2::geom_line(
+              data = data.frame(time = time_seq, surv = param_surv),
+              ggplot2::aes(x = time, y = surv),
+              color = line_color,
+              linetype = "dashed",
+              linewidth = 1,
+              inherit.aes = FALSE
+            )
+        }, error = function(e) {
+          warning("Failed to add parametric curve for ARM ", arm, ": ", e$message)
+        })
+      }
     }
 
     # Add legend for line types in bottom left (moved up slightly and arranged horizontally)
@@ -332,8 +374,12 @@ ParametricSurvKM <- function(dataset,
         fontface = "bold"
       )
 
-    # Store plot
-    plot_list[[paste0(stratify_name, "_", strat_level)]] <- base_plot
+    # Store plot with appropriate naming
+    if (has_stratification) {
+      plot_list[[paste0(stratify_name, "_", strat_level)]] <- base_plot
+    } else {
+      plot_list[["Overall"]] <- base_plot
+    }
 
     # Display plot if return_plots is FALSE
     if (!return_plots) {

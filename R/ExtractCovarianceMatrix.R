@@ -113,27 +113,34 @@ ExtractCovarianceMatrix <- function(dataset,
     include_shape <- FALSE
   }
 
-  # Determine reference level for STRATIFY
-  stratify_levels <- levels(dataset$STRATIFY)
-  if (is.null(stratify_reference_level)) {
-    reference_level <- stratify_levels[1]
-    message("Using default reference level for STRATIFY: '", reference_level, "'")
-  } else {
-    if (!stratify_reference_level %in% stratify_levels) {
-      stop("stratify_reference_level '", stratify_reference_level,
-           "' not found in STRATIFY levels: ", paste(stratify_levels, collapse = ", "))
+  # Check if we have stratification (more than one STRATIFY level)
+  stratify_levels <- unique(dataset$STRATIFY)
+  has_stratification <- length(stratify_levels) > 1
+
+  # For stratified analysis, determine reference level
+  if (has_stratification) {
+    if (is.null(stratify_reference_level)) {
+      reference_level <- stratify_levels[1]
+      message("Using default reference level for STRATIFY: '", reference_level, "'")
+    } else {
+      if (!stratify_reference_level %in% stratify_levels) {
+        stop("stratify_reference_level '", stratify_reference_level,
+             "' not found in STRATIFY levels: ", paste(stratify_levels, collapse = ", "))
+      }
+      reference_level <- stratify_reference_level
+      message("Using specified reference level for STRATIFY: '", reference_level, "'")
     }
-    reference_level <- stratify_reference_level
-    message("Using specified reference level for STRATIFY: '", reference_level, "'")
+
+    # Create indicator variable for stratification
+    dataset$STRATIFY_INDICATOR <- ifelse(dataset$STRATIFY == reference_level, 1, 0)
+    message("Stratification encoding: ", reference_level, " = 1, ",
+            paste(setdiff(stratify_levels, reference_level), collapse = ", "), " = 0")
+  } else {
+    message("No stratification detected (single STRATIFY level): ", stratify_levels[1])
   }
 
-  # Create indicator variable for stratification
-  dataset$STRATIFY_INDICATOR <- ifelse(dataset$STRATIFY == reference_level, 1, 0)
-  message("Stratification encoding: ", reference_level, " = 1, ",
-          paste(setdiff(stratify_levels, reference_level), collapse = ", "), " = 0")
-
   # Check ARM levels
-  arm_levels <- levels(dataset$ARM)
+  arm_levels <- unique(dataset$ARM)
   if (length(arm_levels) < 2) {
     stop("ARM variable must have at least 2 levels for covariate analysis")
   }
@@ -149,7 +156,7 @@ ExtractCovarianceMatrix <- function(dataset,
     "gamma" = "Gamma"
   )
 
-  # Fit model based on distribution type
+  # Fit model based on distribution type and stratification
   tryCatch({
 
     if (distribution %in% c("exp", "weibull", "lnorm", "llogis")) {
@@ -161,19 +168,39 @@ ExtractCovarianceMatrix <- function(dataset,
                              "llogis" = "loglogistic"
       )
 
-      fit_model <- survival::survreg(
-        survival::Surv(SURVTIME, EVENT) ~ ARM + STRATIFY_INDICATOR,
-        data = dataset,
-        dist = survreg_dist
-      )
+      if (has_stratification) {
+        # With stratification
+        fit_model <- survival::survreg(
+          survival::Surv(SURVTIME, EVENT) ~ ARM + STRATIFY_INDICATOR,
+          data = dataset,
+          dist = survreg_dist
+        )
+      } else {
+        # Without stratification - only ARM effect
+        fit_model <- survival::survreg(
+          survival::Surv(SURVTIME, EVENT) ~ ARM,
+          data = dataset,
+          dist = survreg_dist
+        )
+      }
 
     } else {
       # Use flexsurv for advanced distributions
-      fit_model <- flexsurv::flexsurvreg(
-        survival::Surv(SURVTIME, EVENT) ~ ARM + STRATIFY_INDICATOR,
-        data = dataset,
-        dist = distribution
-      )
+      if (has_stratification) {
+        # With stratification
+        fit_model <- flexsurv::flexsurvreg(
+          survival::Surv(SURVTIME, EVENT) ~ ARM + STRATIFY_INDICATOR,
+          data = dataset,
+          dist = distribution
+        )
+      } else {
+        # Without stratification - only ARM effect
+        fit_model <- flexsurv::flexsurvreg(
+          survival::Surv(SURVTIME, EVENT) ~ ARM,
+          data = dataset,
+          dist = distribution
+        )
+      }
     }
 
     # Extract full covariance matrix
@@ -185,7 +212,13 @@ ExtractCovarianceMatrix <- function(dataset,
     # Find parameter indices
     intercept_idx <- grep("^\\(Intercept\\)$|^mu$", param_names)
     arm_idx <- grep("^ARM", param_names)  # Treatment effect
-    stratify_idx <- grep("^STRATIFY_INDICATOR$", param_names)
+
+    # Handle stratification indices
+    if (has_stratification) {
+      stratify_idx <- grep("^STRATIFY_INDICATOR$", param_names)
+    } else {
+      stratify_idx <- c()  # No stratification effect
+    }
 
     # Distribution-specific scale and shape parameters
     if (distribution == "exp") {
@@ -228,10 +261,17 @@ ExtractCovarianceMatrix <- function(dataset,
       keep_indices <- c(keep_indices, intercept_idx[1])
       param_labels <- c(param_labels, "Intercept")
 
-      # Add stratification effect
-      if (length(stratify_idx) > 0) {
+      # Add ARM effect
+      if (length(arm_idx) > 0) {
+        keep_indices <- c(keep_indices, arm_idx[1])
+        arm_name <- gsub("^ARM", "", param_names[arm_idx[1]])
+        param_labels <- c(param_labels, paste("ARM:", arm_name))
+      }
+
+      # Add stratification effect (only if stratification exists)
+      if (has_stratification && length(stratify_idx) > 0) {
         keep_indices <- c(keep_indices, stratify_idx[1])
-        param_labels <- c(param_labels, reference_level)
+        param_labels <- c(param_labels, paste("STRATIFY:", reference_level))
       }
 
       # Add scale parameter if available
@@ -248,10 +288,17 @@ ExtractCovarianceMatrix <- function(dataset,
         keep_indices <- c(keep_indices, scale_idx[1])
         param_labels <- c(param_labels, "Intercept")  # Label as Intercept for consistency
 
-        # Add stratification effect
-        if (length(stratify_idx) > 0) {
+        # Add ARM effect
+        if (length(arm_idx) > 0) {
+          keep_indices <- c(keep_indices, arm_idx[1])
+          arm_name <- gsub("^ARM", "", param_names[arm_idx[1]])
+          param_labels <- c(param_labels, paste("ARM:", arm_name))
+        }
+
+        # Add stratification effect (only if stratification exists)
+        if (has_stratification && length(stratify_idx) > 0) {
           keep_indices <- c(keep_indices, stratify_idx[1])
-          param_labels <- c(param_labels, reference_level)
+          param_labels <- c(param_labels, paste("STRATIFY:", reference_level))
         }
 
         # Add the same rate parameter again as Scale for consistency with other distributions
