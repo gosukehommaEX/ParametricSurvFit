@@ -137,9 +137,10 @@ ExtractCovarianceMatrix <- function(dataset,
             paste(setdiff(stratify_levels, reference_level), collapse = ", "), " = 0")
   } else {
     message("No stratification detected (single STRATIFY level): ", stratify_levels[1])
+    reference_level <- NULL  # No reference level needed
   }
 
-  # Check ARM levels
+  # Check ARM levels for validation only
   arm_levels <- unique(dataset$ARM)
   if (length(arm_levels) < 2) {
     stop("ARM variable must have at least 2 levels for covariate analysis")
@@ -156,7 +157,10 @@ ExtractCovarianceMatrix <- function(dataset,
     "gamma" = "Gamma"
   )
 
-  # Fit model based on distribution type and stratification
+  # Use all data for covariance matrix calculation (no ARM filtering)
+  message("Extracting covariance matrix using all data")
+
+  # Fit model based on stratification and distribution type (using all data)
   tryCatch({
 
     if (distribution %in% c("exp", "weibull", "lnorm", "llogis")) {
@@ -169,49 +173,48 @@ ExtractCovarianceMatrix <- function(dataset,
       )
 
       if (has_stratification) {
-        # With stratification
+        # With stratification: include stratification effect only
         fit_model <- survival::survreg(
-          survival::Surv(SURVTIME, EVENT) ~ ARM + STRATIFY_INDICATOR,
+          survival::Surv(SURVTIME, EVENT) ~ STRATIFY_INDICATOR,
           data = dataset,
           dist = survreg_dist
         )
       } else {
-        # Without stratification - only ARM effect
+        # Without stratification: intercept-only model
         fit_model <- survival::survreg(
-          survival::Surv(SURVTIME, EVENT) ~ ARM,
+          survival::Surv(SURVTIME, EVENT) ~ 1,
           data = dataset,
           dist = survreg_dist
         )
       }
 
     } else {
-      # Use flexsurv for advanced distributions
+      # Use flexsurv for advanced distributions (gompertz, gengamma, gamma)
       if (has_stratification) {
-        # With stratification
+        # With stratification: include stratification effect only
         fit_model <- flexsurv::flexsurvreg(
-          survival::Surv(SURVTIME, EVENT) ~ ARM + STRATIFY_INDICATOR,
+          survival::Surv(SURVTIME, EVENT) ~ STRATIFY_INDICATOR,
           data = dataset,
           dist = distribution
         )
       } else {
-        # Without stratification - only ARM effect
+        # Without stratification: intercept-only model
         fit_model <- flexsurv::flexsurvreg(
-          survival::Surv(SURVTIME, EVENT) ~ ARM,
+          survival::Surv(SURVTIME, EVENT) ~ 1,
           data = dataset,
           dist = distribution
         )
       }
     }
 
-    # Extract full covariance matrix
+    # Extract full covariance matrix using all data
     full_cov <- stats::vcov(fit_model)
     param_names <- rownames(full_cov)
 
-    message("Available parameters for ", distribution, ": ", paste(param_names, collapse = ", "))
+    message("Available parameters for ", distribution, " (all data): ", paste(param_names, collapse = ", "))
 
     # Find parameter indices
     intercept_idx <- grep("^\\(Intercept\\)$|^mu$", param_names)
-    arm_idx <- grep("^ARM", param_names)  # Treatment effect
 
     # Handle stratification indices
     if (has_stratification) {
@@ -261,13 +264,6 @@ ExtractCovarianceMatrix <- function(dataset,
       keep_indices <- c(keep_indices, intercept_idx[1])
       param_labels <- c(param_labels, "Intercept")
 
-      # Add ARM effect
-      if (length(arm_idx) > 0) {
-        keep_indices <- c(keep_indices, arm_idx[1])
-        arm_name <- gsub("^ARM", "", param_names[arm_idx[1]])
-        param_labels <- c(param_labels, paste("ARM:", arm_name))
-      }
-
       # Add stratification effect (only if stratification exists)
       if (has_stratification && length(stratify_idx) > 0) {
         keep_indices <- c(keep_indices, stratify_idx[1])
@@ -282,18 +278,11 @@ ExtractCovarianceMatrix <- function(dataset,
 
     } else {
       # Special case: gamma/gompertz without separate intercept
-      # Rate parameter serves multiple roles
+      # Rate parameter serves as baseline
       if (length(scale_idx) > 0) {
-        # First, add rate as baseline (intercept-like)
+        # Add rate as baseline (intercept-like)
         keep_indices <- c(keep_indices, scale_idx[1])
-        param_labels <- c(param_labels, "Intercept")  # Label as Intercept for consistency
-
-        # Add ARM effect
-        if (length(arm_idx) > 0) {
-          keep_indices <- c(keep_indices, arm_idx[1])
-          arm_name <- gsub("^ARM", "", param_names[arm_idx[1]])
-          param_labels <- c(param_labels, paste("ARM:", arm_name))
-        }
+        param_labels <- c(param_labels, "Intercept")
 
         # Add stratification effect (only if stratification exists)
         if (has_stratification && length(stratify_idx) > 0) {
@@ -319,8 +308,8 @@ ExtractCovarianceMatrix <- function(dataset,
     }
 
     # Ensure we have enough parameters
-    if (length(keep_indices) < 2) {
-      stop("Insufficient parameters found for covariance matrix (need at least 2)")
+    if (length(keep_indices) < 1) {
+      stop("Insufficient parameters found for covariance matrix")
     }
 
     # For distributions where same parameter appears twice, handle covariance matrix carefully
@@ -331,21 +320,30 @@ ExtractCovarianceMatrix <- function(dataset,
 
       # Create expanded matrix to match param_labels structure
       n_params <- length(param_labels)
-      expanded_cov <- matrix(0, nrow = n_params, ncol = n_params)
+      if (n_params == 1) {
+        # Single parameter case
+        sub_cov <- as.matrix(sub_cov_unique)
+      } else {
+        expanded_cov <- matrix(0, nrow = n_params, ncol = n_params)
 
-      # Map to expanded matrix
-      param_to_unique <- match(keep_indices, unique_indices)
-      for (i in 1:n_params) {
-        for (j in 1:n_params) {
-          expanded_cov[i, j] <- sub_cov_unique[param_to_unique[i], param_to_unique[j]]
+        # Map to expanded matrix
+        param_to_unique <- match(keep_indices, unique_indices)
+        for (i in 1:n_params) {
+          for (j in 1:n_params) {
+            expanded_cov[i, j] <- sub_cov_unique[param_to_unique[i], param_to_unique[j]]
+          }
         }
+        sub_cov <- expanded_cov
       }
-
-      sub_cov <- expanded_cov
 
     } else {
       # Normal case: extract covariance submatrix
-      sub_cov <- full_cov[keep_indices, keep_indices, drop = FALSE]
+      if (length(keep_indices) == 1) {
+        # Single parameter case
+        sub_cov <- as.matrix(full_cov[keep_indices, keep_indices, drop = FALSE])
+      } else {
+        sub_cov <- full_cov[keep_indices, keep_indices, drop = FALSE]
+      }
     }
 
     # Set proper row and column names
@@ -361,12 +359,18 @@ ExtractCovarianceMatrix <- function(dataset,
     cov_df <- data.frame(sub_cov, check.names = FALSE)
     cov_df$Variable <- rownames(sub_cov)
 
-    # Add metadata
+    # Add metadata (no ARM information)
     cov_df$Distribution <- dist_name_map[distribution]
     cov_df$Parameter <- parameter_name
 
+    # Only add STRATIFY column if stratification exists
+    if (has_stratification) {
+      cov_df$STRATIFY <- paste("Reference:", reference_level)
+      meta_cols <- c("Distribution", "Parameter", "STRATIFY", "Variable")
+    } else {
+      meta_cols <- c("Distribution", "Parameter", "Variable")
+    }
     # Reorder columns: metadata first, then covariance values
-    meta_cols <- c("Distribution", "Parameter", "Variable")
     cov_cols <- setdiff(names(cov_df), meta_cols)
     cov_df <- cov_df[, c(meta_cols, cov_cols)]
 
@@ -375,10 +379,22 @@ ExtractCovarianceMatrix <- function(dataset,
 
     # Create kable if requested
     if (create_kable) {
+      # Create caption based on stratification
+      if (has_stratification && !is.null(reference_level)) {
+        caption_text <- paste("Covariance Matrix -", dist_name_map[distribution], "-", parameter_name,
+                              "(Reference:", reference_level, ")")
+        align_vector <- c('l', 'l', 'c', 'l', rep('c', length(cov_cols)))
+        merge_cols <- c(1, 2, 3)
+      } else {
+        caption_text <- paste("Covariance Matrix -", dist_name_map[distribution], "-", parameter_name)
+        align_vector <- c('l', 'l', 'l', rep('c', length(cov_cols)))
+        merge_cols <- c(1, 2)
+      }
+
       formatted_table <- cov_df %>%
         kableExtra::kable(
-          caption = paste("Covariance Matrix -", dist_name_map[distribution], "-", parameter_name),
-          align = c('l', 'l', 'l', rep('c', length(cov_cols))),
+          caption = caption_text,
+          align = align_vector,
           digits = 6,
           row.names = FALSE  # Prevent automatic row names column
         ) %>%
@@ -389,7 +405,7 @@ ExtractCovarianceMatrix <- function(dataset,
         ) %>%
         kableExtra::column_spec(1, bold = TRUE, color = "darkblue") %>%
         kableExtra::column_spec(2, bold = TRUE, color = "darkgreen") %>%
-        kableExtra::collapse_rows(columns = c(1, 2), valign = "middle")  # Merge Distribution and Parameter columns
+        kableExtra::collapse_rows(columns = merge_cols, valign = "middle")  # Merge metadata columns
 
       return(formatted_table)
     }
